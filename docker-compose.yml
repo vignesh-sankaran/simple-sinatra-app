@@ -1,0 +1,13 @@
+version: '3'
+services:
+  web:
+    image: 685433754787.dkr.ecr.ap-southeast-2.amazonaws.com/example:latest
+    build: .
+    ports:
+      - "80:9292"
+    logging:
+      driver: awslogs
+      options: 
+        awslogs-group: sinatra
+        awslogs-region: ap-southeast-2
+        awslogs-stream-prefix: sinatra
