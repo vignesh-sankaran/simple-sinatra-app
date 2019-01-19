@@ -1,6 +1,10 @@
 - name: Create docker registry and push container to it
   hosts: localhost
   tasks:
+    - name: Delete all containers within simple_sinatra_app_1 ECR repo
+      shell: aws ecr batch-delete-image --repository-name simple_sinatra_app_1 --image-ids imageTag=latest
+      args:
+        executable: /bin/bash
     - name: Destroy ecr with same name if exists
       ecs_ecr:
         name: simple_sinatra_app_1
@@ -11,12 +15,20 @@
         region: ap-southeast-2
         state: present
       register: ecr
-    - name: docker login
+    - name: get command for login
       shell: "aws ecr get-login --region ap-southeast-2 --no-include-email"
+      args:
+        executable: /bin/bash
+      register: login
+    - name: docker login
+      shell: "{{ login.stdout }}"
       args:
         executable: /bin/bash
     - name: docker build
       docker_image:
         path: ./
         name: simple_sinatra_app
-        tag: simple_sinatra_app
+    - name: docker push
+      docker_image:
+        name: "{{ ecr.repository.repositoryUri }}"
+        push: yes
