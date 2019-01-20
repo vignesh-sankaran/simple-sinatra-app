@@ -39,7 +39,7 @@
         region: ap-southeast-2
       register: vpc
       tags:
-        - vpc
+        - ecs
     - name: Create subnet for cluster
       ec2_vpc_subnet:
         az: ap-southeast-2a
@@ -50,24 +50,45 @@
           Name: sinatra_subnet
       register: sinatra_subnet
       tags:
-        - vpc
+        - ecs
     - name: Create Internet Gateway
       ec2_vpc_igw:
         vpc_id: "{{ vpc.vpc.id }}"
         region: ap-southeast-2
         state: present
       tags:
-        - vpc
-    # - name: Create ECS EC2 cluster
-    #   ecs_service:
-    #     name: simple-sinatra-app-1
-    #     desired_count: 1
-    #     launch_type: EC2
-    #     network_configuration:
-    #       subnets:
-    #       - "{{ sinatra_subnet.subnet.id }}"
-    #       assign_public_ip: yes
-    #     task_definition: "simple-sinatra-app:2"
-    #     state: present
-    #   tags:
-    #     - ecs
+        - ecs
+    - name: Create task to spin up web server
+      ecs_taskdefinition:
+        containers:
+        - name: simple-sinatra-webserver
+          cpu: 2
+          essential: true
+          image: 685433754787.dkr.ecr.ap-southeast-2.amazonaws.com/simple_sinatra_app_1:latest
+          memory: 1024
+          portMappings:
+          - containerPort: 9292
+            hostPort: 80
+        launch_type: EC2
+        region: ap-southeast-2
+      register: task_output
+      tags:
+        - taskdef
+    - name: Start task in existing cluster
+      ecs_task:
+        cluster: ec2
+        task_definition: simple-sinatra-app
+        count: 1
+        started_by: ansible_user
+        operation: run
+      tags:
+        - taskrun
+    - name: Create ECS EC2 cluster
+      ecs_service:
+        name: simple-sinatra-app-1
+        desired_count: 1
+        launch_type: EC2
+        task_definition: "simple-sinatra-app:2"
+        state: present
+      tags:
+        - ecs
