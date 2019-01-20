@@ -37,15 +37,37 @@
         name: sinatra
         cidr_block: 10.0.0.0/16
         region: ap-southeast-2
-      tags:
-        - create-vpc
       register: vpc
+      tags:
+        - vpc
+    - name: Create subnet for cluster
+      ec2_vpc_subnet:
+        az: ap-southeast-2a
+        cidr: 10.0.0.0/24
+        vpc_id: "{{ vpc.vpc.id }}"
+        state: present
+        resource_tags:
+          Name: sinatra_subnet
+      register: sinatra_subnet
+      tags:
+        - vpc
     - name: Create Internet Gateway
       ec2_vpc_igw:
         vpc_id: "{{ vpc.vpc.id }}"
         region: ap-southeast-2
         state: present
-        tags:
-          vpc_name: sinatra
       tags:
-        - create-vpc
+        - vpc
+    # - name: Create ECS EC2 cluster
+    #   ecs_service:
+    #     name: simple-sinatra-app-1
+    #     desired_count: 1
+    #     launch_type: EC2
+    #     network_configuration:
+    #       subnets:
+    #       - "{{ sinatra_subnet.subnet.id }}"
+    #       assign_public_ip: yes
+    #     task_definition: "simple-sinatra-app:2"
+    #     state: present
+    #   tags:
+    #     - ecs
