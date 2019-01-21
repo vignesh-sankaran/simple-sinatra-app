@@ -79,18 +79,15 @@
     - name: Start task in existing cluster
       ecs_task:
         cluster: ec2
-        task_definition: simple-sinatra-app
+        task_definition: simple-sinatra-webserver
         count: 1
         started_by: ansible_user
         operation: run
       tags:
         - taskrun
     - name: Create ECS EC2 cluster
-      ecs_service:
-        name: simple-sinatra-app-1
-        desired_count: 1
-        launch_type: EC2
-        task_definition: "simple-sinatra-app:2"
+      ecs_cluster:
+        name: simple-sinatra-webserver
         state: present
       tags:
-        - ecs
+        - create-cluster
