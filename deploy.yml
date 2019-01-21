@@ -61,8 +61,8 @@
     - name: Create task to spin up web server
       ecs_taskdefinition:
         containers:
-        - name: simple-sinatra-webserver
-          cpu: 2
+        - name: sinatra
+          cpu: 128
           essential: true
           image: 685433754787.dkr.ecr.ap-southeast-2.amazonaws.com/simple_sinatra_app_1:latest
           memory: 1024
@@ -71,6 +71,8 @@
             hostPort: 80
         launch_type: EC2
         region: ap-southeast-2
+        family: simple-sinatra-webserver
+        state: present
       register: task_output
       tags:
         - taskdef
