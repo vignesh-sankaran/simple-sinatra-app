@@ -91,3 +91,18 @@
         state: present
       tags:
         - create-cluster
+    - name: Add instance to ECS cluster
+      ecs_cluster:
+        name: simple-sinatra-webserver
+        state: has_instances
+      tags:
+        - create-cluster
+    - name: Create ECS cluster
+      ecs_service:
+        state: present
+        name: console-test-service
+        cluster: simple-sinatra-webserver
+        task_definition: 'simple-sinatra-webserver:1'
+        desired_count: 0
+      tags:
+        - ecs-service
