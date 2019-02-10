@@ -32,8 +32,6 @@
       register: vpc
       tags:
         - ecs
-    - debug:
-        var: vpc
     - name: Create subnet for cluster
       ec2_vpc_subnet:
         az: ap-southeast-2a
@@ -52,22 +50,15 @@
       ecs_cluster:
         name: simple-sinatra-webserver
         state: present
-    - name: Create an autoscaling group launch configuration
-      ec2_lc:
-        name: sinatra_lc
-        region: ap-southeast-2
+    - name: Create EC2 instance
+      ec2:
         assign_public_ip: yes
         instance_type: t2.medium
-        instance_profile_name: ecsInstanceRole
-        image_id: "ami-0a7936ea6d7d16c6d"
-    - name: Create an autoscaling group
-      ec2_asg:
-        name: sinatra_asg
+        image: ami-0a7936ea6d7d16c6d
+        wait: yes
+        vpc_subnet_id: "{{ sinatra_subnet.subnet.id }}"
+        instance_profile_name: ecsInstanceRole 
         region: ap-southeast-2
-        min_size: 1
-        max_size: 2
-        vpc_zone_identifier: [ "{{ sinatra_subnet.id }}" ]
-        launch_config_name: sinatra_lc
     - name: Create task to spin up web server
       ecs_taskdefinition:
         containers:
