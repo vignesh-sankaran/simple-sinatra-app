@@ -59,7 +59,7 @@
         assign_public_ip: yes
         instance_type: t2.medium
         instance_profile_name: ecsInstanceRole
-        image_id: ami-0a7936ea6d7d16c6d
+        image_id: "ami-0a7936ea6d7d16c6d"
     - name: Create an autoscaling group
       ec2_asg:
         name: sinatra_asg
