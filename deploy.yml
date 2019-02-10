@@ -1,14 +1,6 @@
 - name: Create docker registry and push container to it
   hosts: localhost
   tasks:
-    - name: Delete all containers within simple_sinatra_app_1 ECR repo
-      shell: aws ecr batch-delete-image --repository-name simple_sinatra_app_1 --image-ids imageTag=latest
-      args:
-        executable: /bin/bash
-    - name: Destroy ecr with same name if exists
-      ecs_ecr:
-        name: simple_sinatra_app_1
-        state: absent
     - name: Create ecr in AWS
       ecs_ecr:
         name: simple_sinatra_app_1
@@ -40,6 +32,8 @@
       register: vpc
       tags:
         - ecs
+    - debug:
+        var: vpc
     - name: Create subnet for cluster
       ec2_vpc_subnet:
         az: ap-southeast-2a
@@ -49,22 +43,38 @@
         resource_tags:
           Name: sinatra_subnet
       register: sinatra_subnet
-      tags:
-        - ecs
     - name: Create Internet Gateway
       ec2_vpc_igw:
         vpc_id: "{{ vpc.vpc.id }}"
         region: ap-southeast-2
         state: present
-      tags:
-        - ecs
+    - name: Create ECS cluster
+      ecs_cluster:
+        name: simple-sinatra-webserver
+        state: present
+    - name: Create an autoscaling group launch configuration
+      ec2_lc:
+        name: sinatra_lc
+        region: ap-southeast-2
+        assign_public_ip: yes
+        instance_type: t2.medium
+        instance_profile_name: ecsInstanceRole
+        image_id: ami-0a7936ea6d7d16c6d
+    - name: Create an autoscaling group
+      ec2_asg:
+        name: sinatra_asg
+        region: ap-southeast-2
+        min_size: 1
+        max_size: 2
+        vpc_zone_identifier: [ "{{ sinatra_subnet.id }}" ]
+        launch_config_name: sinatra_lc
     - name: Create task to spin up web server
       ecs_taskdefinition:
         containers:
         - name: sinatra
           cpu: 128
           essential: true
-          image: 685433754787.dkr.ecr.ap-southeast-2.amazonaws.com/simple_sinatra_app_1:latest
+          image: "{{ ecr.repository.repositoryUri }}:latest"
           memory: 1024
           portMappings:
           - containerPort: 9292
@@ -76,33 +86,22 @@
       register: task_output
       tags:
         - taskdef
-    - name: Start task in existing cluster
-      ecs_task:
-        cluster: ec2
-        task_definition: simple-sinatra-webserver
-        count: 1
-        started_by: ansible_user
-        operation: run
-      tags:
-        - taskrun
-    - name: Create ECS EC2 cluster
-      ecs_cluster:
-        name: simple-sinatra-webserver
-        state: present
-      tags:
-        - create-cluster
-    - name: Add instance to ECS cluster
-      ecs_cluster:
-        name: simple-sinatra-webserver
-        state: has_instances
-      tags:
-        - create-cluster
-    - name: Create ECS cluster
+    - name: Create and spin up ECS service
       ecs_service:
+        name: simple-ecs
         state: present
-        name: console-test-service
         cluster: simple-sinatra-webserver
-        task_definition: 'simple-sinatra-webserver:1'
-        desired_count: 0
+        task_definition: "simple-sinatra-webserver:1"
+        desired_count: 1
       tags:
-        - ecs-service
+        - ecs-server
+    - name: Start task
+      ecs_task:
+        operation: run
+        region: ap-southeast-2
+        cluster: simple-sinatra-webserver
+        task_definition: simple-sinatra-webserver
+        started_by: ansible
+        count: 1
+      tags:
+        - task-run
