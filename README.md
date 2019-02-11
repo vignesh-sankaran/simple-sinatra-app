@@ -42,7 +42,7 @@ Internet connection available and upload bandwidth available.
 
 ## Attributions
 
-These are sources the author used to provide a base to work with in the creation of the
+These are sources the author consulted to assist with and direct the creation of the
 Ansible playbook.
 
 Credit to configo [Source](https://github.com/comefigo/ansible-push2ecr/blob/master/push_image.yml)
