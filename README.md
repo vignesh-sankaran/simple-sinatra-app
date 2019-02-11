@@ -1,22 +1,50 @@
 # REA Systems Engineer practical task
 
+Solution to deploying the Simple Sinatra app
+
+## Requirements to provisioning
+The solution makes use of AWS, Docker, and Ansible.
+
+The Ansible playbook requires there to be a default AWS user set up in
+`~/.aws/credentials`. The required permissions for the user are as follows:
+- IAMFullAccess
+- AmazonEC2ContainerRegistryFullAccess
+- AmazonECS_FullAccess
+- AmazonVPCFullAccess
+
+Docker must be installed and running, and Ansible installed via `pip3`.
+
 ## To run and provision
 
-- Command to run locally
-- Command to provision and set up infrastructure in AWS
-	- Add instructions to set up AWS credentials
-	- Also add instructions to install Docker and how to use Terraform if required
+- Run `ansible-playbook deploy.yml` to build and push the Docker container and create
+and provision the infrastructure in AWS.
 
-## Approach
+## Design overview and rationale
 
-Docker container to host the Ruby service
-- Docker compose on ECS
-- Terraform to provision the hardware
+The solution utilises Docker, which is pushed to an Elastic Container Registry (ECR). 
+Elastic Container Service will then pull from ECR and run a task to deploy the Docker
+container to a cluster which runs on an EC2 instance. The EC2 task definition type was chosen
+since the Fargate type was unable to offer container port forwarding, which was required
+to forward port 80 to port 9292 the web application utilises.
 
-This approach's main advantage is its simplicity in building and reasoning
-about the deployment structure, ease of deployment with one command, and
-Docker's excellent idemotentency. The last of these factors also makes it easy
-to set up anti-fragile services, since Docker containers make it easy to kill
-and respawn failing services as required.
+Docker was chosen since it abstracts away the details of configuring the OS, and its ease
+of pushing the web server and OS as a self-contained package to a registry. Ansible was
+used for its ease of use and relatively low learning curve. 
 
-Pitfalls include needing to have Docker installed on a development machine.
+## Shortfalls and issues
+
+Unfortunately, the script is not functional due to an issue the author ran into with 
+provisioning the EC2 instance with the required machine image ECS requires. As a result,
+the script fails to set up a working web server on ECS.
+
+The `docker push` step of the deploy can take a lengthy amount of time, depending on the
+Internet connection available and upload bandwidth available.
+
+## Attributions
+
+These are sources the author used to provide a base to work with in the creation of the
+Ansible playbook.
+
+Credit to configo [Source](https://github.com/comefigo/ansible-push2ecr/blob/master/push_image.yml)
+
+Credit to Daniel Roades[Source](https://github.com/daniel-rhoades/greeter-service-example)
